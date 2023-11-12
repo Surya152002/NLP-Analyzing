@@ -51,7 +51,6 @@ class SentimentAnalyzer:
 
         return description, trend
 
-
 # Streamlit UI
 st.title("Student Review Sentiment Analysis")
 
@@ -62,14 +61,13 @@ if csv_file:
     df = pd.read_csv(csv_file)
     st.write(df.head())  # Debug statement to check the loaded data
 
-    students = df["Student"].tolist()
+    students = df["Student"].unique().tolist()
     selected_student = st.selectbox("Select a student:", ["All Students"] + students)
     review_period = st.selectbox("Review Period:", [1, 4])
 
     if selected_student != "All Students":
+        # Processing for individual student
         student_data = df[df["Student"] == selected_student].squeeze()
-        st.write(student_data.head())  # Debug statement to check the filtered data
-
         reviews = student_data[1:].tolist()
         analyzer = SentimentAnalyzer()
 
@@ -77,7 +75,6 @@ if csv_file:
             sentiments = analyzer.analyze_sentiment(reviews)
         else:
             sentiments = analyzer.analyze_periodic_sentiment(reviews, review_period)
-        st.write(sentiments)  # Debug statement to check the sentiments
 
         overall_sentiment = analyzer.calculate_overall_sentiment(reviews)
         st.subheader(f"Overall Sentiment for {selected_student}: {overall_sentiment:.2f}")
@@ -113,21 +110,24 @@ if csv_file:
         breakdown_df = pd.DataFrame(sentiments, index=list(range(1, len(sentiments) + 1)))
         st.write(breakdown_df)
 
-        # Add a button to download student performance data
-        if st.button("Download Student Performance Data"):
-            output_df = pd.DataFrame({'Student': students})
-            output_df['Overall Sentiment'] = [analyzer.calculate_overall_sentiment(df[df["Student"] == student].squeeze()[1:].tolist()) for student in students]
-            output_df['Sentiment Description'] = [analyzer.interpret_sentiment(analyzer.analyze_sentiment(df[df["Student"] == student].squeeze()[1:].tolist()))[0] for student in students]
+    elif selected_student == "All Students":
+        # Processing for all students
+        analyzer = SentimentAnalyzer()
+        all_students_data = []
 
-            # Create a streamlit.io object to store the CSV data
-            output_data = io.StringIO()
-            output_df.to_csv(output_data, index=False)
-            output_data.seek(0)
+        for student in students:
+            student_reviews = df[df["Student"] == student].squeeze()[1:].tolist()
+            overall_sentiment = analyzer.calculate_overall_sentiment(student_reviews)
+            description, trend = analyzer.interpret_sentiment(analyzer.analyze_sentiment(student_reviews))
+            
+            student_data = {
+                "Student": student,
+                "Overall Sentiment": overall_sentiment,
+                "Sentiment Description": description,
+                "Sentiment Trend": trend
+            }
+            all_students_data.append(student_data)
 
-            # Display a download button for the CSV file
-            st.download_button(
-                label="Click here to download student performance data",
-                data=output_data.getvalue().encode('utf-8'),
-                file_name="student_performance.csv",
-                key='download_button'
-            )
+        all_students_df = pd.DataFrame(all_students_data)
+        st.subheader("All Students Sentiment Analysis")
+        st.write(all_students_df)
