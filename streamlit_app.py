@@ -5,6 +5,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
 import io
 
+# Downloading necessary NLTK data
 nltk.download('vader_lexicon')
 
 class SentimentAnalyzer:
@@ -51,7 +52,7 @@ class SentimentAnalyzer:
 
         return description, trend
 
-# Streamlit UI
+# Streamlit UI setup
 st.title("Student Review Sentiment Analysis")
 
 # Upload CSV file
@@ -131,3 +132,18 @@ if csv_file:
         all_students_df = pd.DataFrame(all_students_data)
         st.subheader("All Students Sentiment Analysis")
         st.write(all_students_df)
+
+        # Function to convert DataFrame to CSV (for download)
+        def convert_df_to_csv(df):
+            return df.to_csv(index=False).encode('utf-8')
+
+        csv_data = convert_df_to_csv(all_students_df)
+
+        # Download button
+        st.download_button(
+            label="Download data as CSV",
+            data=csv_data,
+            file_name='students_sentiment_analysis.csv',
+            mime='text/csv',
+        )
+
